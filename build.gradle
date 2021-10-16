@@ -1,3 +1,8 @@
+import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
+import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
+import com.bmuschko.gradle.docker.tasks.container.DockerStopContainer
+import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
+
 buildscript {
     repositories {
         maven { url "https://repo.grails.org/grails/core" }
@@ -7,6 +12,7 @@ buildscript {
         classpath "org.grails.plugins:hibernate5:7.0.0"
         classpath "gradle.plugin.com.github.erdi.webdriver-binaries:webdriver-binaries-gradle-plugin:2.0"
         classpath "com.bertramlabs.plugins:asset-pipeline-gradle:3.0.10"
+        classpath "com.bmuschko:gradle-docker-plugin:3.2.1" // <1>
     }
 }
 
@@ -15,11 +21,11 @@ group "com.app"
 
 apply plugin:"eclipse"
 apply plugin:"idea"
-apply plugin:"war"
 apply plugin:"org.grails.grails-web"
 apply plugin:"com.github.erdi.webdriver-binaries"
 apply plugin:"org.grails.grails-gsp"
 apply plugin:"com.bertramlabs.asset-pipeline"
+apply plugin:"com.bmuschko.docker-remote-api"
 
 repositories {
     maven { url "https://repo.grails.org/grails/core" }
@@ -101,4 +107,18 @@ tasks.withType(Test) {
 assets {
     minifyJs = true
     minifyCss = true
+}
+
+ext {
+    dockerTag = "sm-system/${project.name}:${project.version}".toLowerCase() 
+    dockerBuildDir = mkdir("${buildDir}/docker/server") 
+}
+task prepareDocker(type: Copy, dependsOn: assemble) { 
+    description = 'Copy files from src/main/docker and application jar to Docker temporal build directory'
+    group = 'Docker'
+
+    from 'src/main/docker/server'
+    from project.jar
+
+    into dockerBuildDir
 }
